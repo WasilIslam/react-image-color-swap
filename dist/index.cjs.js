@@ -1,67 +1,81 @@
 'use strict';
 
+var tslib = require('tslib');
 var React = require('react');
 
-var ImageWithColorSwap = function (_a) {
-    var src = _a.src, fromColor = _a.fromColor, toColor = _a.toColor, _b = _a.threshold, threshold = _b === void 0 ? 60 : _b, _c = _a.alt, alt = _c === void 0 ? "Processed image" : _c, className = _a.className, style = _a.style, _d = _a.loadingElement, loadingElement = _d === void 0 ? React.createElement("p", null, "...") : _d;
-    var canvasRef = React.useRef(null);
-    var _e = React.useState(null), processedSrc = _e[0], setProcessedSrc = _e[1];
-    var _f = React.useState(true), isLoading = _f[0], setIsLoading = _f[1];
-    var hexToRgb = function (hex) {
-        var cleanHex = hex.replace("#", "");
-        return [parseInt(cleanHex.substr(0, 2), 16), parseInt(cleanHex.substr(2, 2), 16), parseInt(cleanHex.substr(4, 2), 16)];
-    };
-    var _g = [hexToRgb(fromColor), hexToRgb(toColor)], fromColorRGB = _g[0], toColorRGB = _g[1];
-    React.useEffect(function () {
-        if (!src)
-            return;
-        setIsLoading(true);
+// Cache for processed images
+var processedImageCache = new Map();
+var hexToRgb = function (hex) {
+    var cleanHex = hex.replace("#", "");
+    return [
+        parseInt(cleanHex.substr(0, 2), 16),
+        parseInt(cleanHex.substr(2, 2), 16),
+        parseInt(cleanHex.substr(4, 2), 16),
+    ];
+};
+var processImage = function (src, fromColorRGB, toColorRGB, threshold) {
+    // Generate cache key
+    var cacheKey = "".concat(src, "-").concat(fromColorRGB.join(), "-").concat(toColorRGB.join(), "-").concat(threshold);
+    // Check cache first
+    if (processedImageCache.has(cacheKey)) {
+        return Promise.resolve(processedImageCache.get(cacheKey));
+    }
+    return new Promise(function (resolve, reject) {
+        var canvas = document.createElement('canvas');
+        var ctx = canvas.getContext('2d');
         var image = new Image();
         image.crossOrigin = "Anonymous";
-        image.src = src;
         image.onload = function () {
-            var canvas = canvasRef.current;
-            if (!canvas)
-                return;
-            var ctx = canvas.getContext("2d");
-            if (!ctx)
-                return;
             canvas.width = image.width;
             canvas.height = image.height;
-            ctx.drawImage(image, 0, 0);
-            var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            ctx === null || ctx === void 0 ? void 0 : ctx.drawImage(image, 0, 0);
+            var imageData = ctx === null || ctx === void 0 ? void 0 : ctx.getImageData(0, 0, canvas.width, canvas.height);
+            if (!imageData)
+                return reject('Could not get image data');
             var data = imageData.data;
             var isMatchingColor = function (r, g, b) {
                 var targetR = fromColorRGB[0], targetG = fromColorRGB[1], targetB = fromColorRGB[2];
-                var distance = Math.sqrt(Math.pow(r - targetR, 2) + Math.pow(g - targetG, 2) + Math.pow(b - targetB, 2));
+                var distance = Math.sqrt(Math.pow(r - targetR, 2) +
+                    Math.pow(g - targetG, 2) +
+                    Math.pow(b - targetB, 2));
                 return distance < (threshold * 441.67) / 100;
             };
             for (var i = 0; i < data.length; i += 4) {
-                var r = data[i];
-                var g = data[i + 1];
-                var b = data[i + 2];
-                if (isMatchingColor(r, g, b)) {
+                if (isMatchingColor(data[i], data[i + 1], data[i + 2])) {
                     data[i] = toColorRGB[0];
                     data[i + 1] = toColorRGB[1];
                     data[i + 2] = toColorRGB[2];
                 }
             }
-            ctx.putImageData(imageData, 0, 0);
-            setProcessedSrc(canvas.toDataURL());
-            setIsLoading(false);
+            ctx === null || ctx === void 0 ? void 0 : ctx.putImageData(imageData, 0, 0);
+            var processedSrc = canvas.toDataURL();
+            // Store in cache
+            processedImageCache.set(cacheKey, processedSrc);
+            resolve(processedSrc);
         };
-        image.onerror = function () {
-            console.error("Error loading image");
-            setIsLoading(false);
-        };
-        return function () {
-            image.onload = null;
-            image.onerror = null;
-        };
-    }, [src, fromColorRGB, toColorRGB, threshold]);
-    return (React.createElement(React.Fragment, null,
-        React.createElement("canvas", { ref: canvasRef, style: { display: "none" } }),
-        isLoading ? loadingElement : processedSrc && (React.createElement("img", { src: processedSrc, alt: alt, className: className, style: style }))));
+        image.onerror = function () { return reject('Error loading image'); };
+        image.src = src;
+    });
+};
+var ImageWithColorSwap = function (_a) {
+    var src = _a.src, fromColor = _a.fromColor, toColor = _a.toColor, _b = _a.threshold, threshold = _b === void 0 ? 60 : _b, _c = _a.alt, alt = _c === void 0 ? "Processed image" : _c, className = _a.className, style = _a.style, _d = _a.width, width = _d === void 0 ? 500 : _d;
+    var processedSrc = React.useMemo(function () {
+        var fromColorRGB = hexToRgb(fromColor);
+        var toColorRGB = hexToRgb(toColor);
+        // Start processing and return a placeholder while processing
+        processImage(src, fromColorRGB, toColorRGB, threshold)
+            .then(function (newSrc) {
+            var img = document.querySelector("[data-src=\"".concat(src, "\"]"));
+            if (img)
+                img.src = newSrc;
+        })
+            .catch(console.error);
+        // Return cached version if available
+        var cacheKey = "".concat(src, "-").concat(fromColorRGB.join(), "-").concat(toColorRGB.join(), "-").concat(threshold);
+        return processedImageCache.get(cacheKey) || src;
+    }, [src, fromColor, toColor, threshold]);
+    return (React.createElement("div", { style: { width: width, aspectRatio: '1' } },
+        React.createElement("img", { "data-src": src, src: processedSrc, alt: alt, className: className, style: tslib.__assign(tslib.__assign({}, style), { width: '100%', height: '100%', objectFit: 'contain' }) })));
 };
 
 exports.ImageWithColorSwap = ImageWithColorSwap;

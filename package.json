@@ -1,7 +1,7 @@
 {
   "name": "react-image-color-swap",
-  "version": "1.0.0",
-  "description": "A React component library for real-time image color manipulation",
+  "version": "1.1.0",
+  "description": "A React component library for real-time image color manipulation using simple canvas library.",
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",

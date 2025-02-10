@@ -30,11 +30,12 @@ function App() {
   return (
     <ImageWithColorSwap
       src="path/to/image.png"
+      width={200}
       fromColor="#ff0000"  // The color you want to replace
       toColor="#00ff00"    // The new color
       threshold={60}       // How strict the color matching should be
       alt="Color swapped image"
-      style={{ width: '200px' }}
+      style={{ marginRight: '10px' }}
     />
   );
 }
@@ -58,7 +59,7 @@ function App() {
 | alt | string | "Processed image" | Alt text for accessibility |
 | className | string | undefined | Custom CSS class name |
 | style | CSSProperties | undefined | Inline CSS styles |
-| loadingElement | ReactNode | `<p>...</p>` | Custom loading indicator while processing |
+| width | number | 500 | Width of the container in pixels |
 
 ### Usage Tips
 
@@ -74,21 +75,23 @@ function App() {
 
 3. **Examples**:
    ```tsx
-   // Exact color replacement
+   // Basic usage with width
    <ImageWithColorSwap
      src="logo.png"
      fromColor="#ff0000"
      toColor="#00ff00"
      threshold={30}
+     width={400}
    />
 
-   // Including similar shades
+   // With custom styling
    <ImageWithColorSwap
      src="logo.png"
      fromColor="#ff0000"
      toColor="#00ff00"
      threshold={70}
-     loadingElement={<span>Processing...</span>}
+     width={600}
+     style={{ border: '1px solid #ccc' }}
    />
    ```
 

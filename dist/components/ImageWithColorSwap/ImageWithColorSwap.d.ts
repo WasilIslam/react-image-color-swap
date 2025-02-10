@@ -7,7 +7,7 @@ interface ImageWithColorSwapProps {
     alt?: string;
     className?: string;
     style?: React.CSSProperties;
-    loadingElement?: React.ReactNode;
+    width?: number;
 }
 declare const ImageWithColorSwap: React.FC<ImageWithColorSwapProps>;
 export default ImageWithColorSwap;
